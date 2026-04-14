@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4F46E5">
     <title>College Expense Tracker</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -28,11 +30,30 @@
             font-family: var(--font);
             background: var(--bg);
             color: var(--text);
-            padding: 16px;
             min-height: 100vh;
         }
 
+        /* Auth screen */
+        #auth-screen { background: var(--bg); }
+        .auth-tab { transition: all 0.2s; }
+
+        /* App screen */
+        #app-screen { padding: 16px; }
+
         .container { max-width: 480px; margin: 0 auto; }
+
+        /* Overdue banner */
+        #overdue-banner {
+            display: none;
+            background: #FEF3C7;
+            color: #92400E;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            border: 1px solid #FDE68A;
+        }
 
         /* Header */
         .header {
@@ -244,6 +265,17 @@
         .tx-delete { background: none; border: none; cursor: pointer; color: #CBD5E1; font-size: 16px; padding: 4px; flex-shrink: 0; }
         .tx-delete:hover { color: var(--danger); }
 
+        /* Splits */
+        .balance-summary { margin-bottom: 12px; }
+        .split-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #F1F5F9;
+        }
+        .split-item:last-child { border-bottom: none; }
+
         /* Budget settings */
         .setting-row {
             display: flex;
@@ -293,17 +325,74 @@
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
 
+        /* Install banner */
+        #install-banner {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+            padding: 16px;
+            z-index: 998;
+            text-align: center;
+        }
+
+        /* Trend chart */
+        #trend-chart { margin-bottom: 8px; }
+        #trend-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
         @media (max-width: 400px) {
             .category-grid { grid-template-columns: repeat(4, 1fr); }
         }
     </style>
 </head>
 <body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;">
+    <div style="background:var(--card);border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.1);padding:32px 28px;width:100%;max-width:380px;">
+        <div style="text-align:center;margin-bottom:24px;">
+            <h1 style="font-size:1.5rem;color:var(--primary);font-weight:700;">💰 Expense Tracker</h1>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">Track your college spending</p>
+        </div>
+        <div style="display:flex;gap:4px;background:#F1F5F9;border-radius:8px;padding:4px;margin-bottom:24px;">
+            <button class="auth-tab active" onclick="showAuthTab('login')" style="flex:1;padding:8px;border:none;border-radius:6px;background:var(--card);cursor:pointer;font-size:14px;font-weight:500;font-family:var(--font);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.1);">Login</button>
+            <button class="auth-tab" onclick="showAuthTab('register')" style="flex:1;padding:8px;border:none;border-radius:6px;background:transparent;cursor:pointer;font-size:14px;font-weight:500;font-family:var(--font);color:var(--text-muted);">Register</button>
+        </div>
+        <div id="auth-error" style="display:none;background:#FEF2F2;color:var(--danger);padding:10px 12px;border-radius:6px;font-size:13px;margin-bottom:12px;"></div>
+        <div id="login-form">
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Email</label><input type="email" id="login-email" placeholder="you@email.com" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Password</label><input type="password" id="login-password" placeholder="••••••" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <button onclick="login()" style="width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;">Login</button>
+            <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-muted);"><a onclick="showForgot()" style="color:var(--primary);cursor:pointer;">Forgot password?</a></div>
+        </div>
+        <div id="register-form" style="display:none;">
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Name</label><input type="text" id="reg-name" placeholder="Your name" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Email</label><input type="email" id="reg-email" placeholder="you@email.com" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Password</label><input type="password" id="reg-password" placeholder="Min 6 characters" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <button onclick="register()" style="width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;">Create Account</button>
+        </div>
+        <div id="forgot-form" style="display:none;">
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Enter your email and we'll send a reset link.</p>
+            <div style="margin-bottom:14px;"><label style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Email</label><input type="email" id="forgot-email" placeholder="you@email.com" style="width:100%;padding:11px 12px;border:2px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-family:var(--font);"></div>
+            <button onclick="forgotPassword()" style="width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;">Send Reset Link</button>
+            <div style="text-align:center;margin-top:12px;font-size:13px;"><a onclick="showAuthTab('login')" style="color:var(--primary);cursor:pointer;">Back to login</a></div>
+        </div>
+    </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen" style="display:none;">
 <div class="container">
+
+    <div id="overdue-banner"></div>
 
     <div class="header">
         <h1>💰 Expense Tracker</h1>
         <p id="month-label">Loading...</p>
+        <p id="user-name-short" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></p>
     </div>
 
     <div class="budget-card">
@@ -327,6 +416,7 @@
         <button class="tab active" onclick="switchTab('log', this)">➕ Log</button>
         <button class="tab" onclick="switchTab('summary', this)">📊 Summary</button>
         <button class="tab" onclick="switchTab('history', this)">🕐 History</button>
+        <button class="tab" onclick="switchTab('splits', this)">🤝 Split</button>
         <button class="tab" onclick="switchTab('settings', this)">⚙️ Settings</button>
     </div>
 
@@ -348,7 +438,7 @@
 
             <input class="note-input" id="note" type="text" placeholder="Note (optional) — e.g. Canteen lunch">
 
-            <button class="btn-add" onclick="addExpense()">Add Expense</button>
+            <button class="btn-add" id="add-btn" onclick="addExpense()">Add Expense</button>
         </div>
     </div>
 
@@ -359,6 +449,11 @@
             <div id="cat-breakdown">
                 <div class="empty"><div class="icon">📊</div><p>No expenses yet this month</p></div>
             </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Spending trend</div>
+            <canvas id="trend-chart" height="80"></canvas>
+            <div id="trend-labels"></div>
         </div>
     </div>
 
@@ -375,23 +470,91 @@
         </div>
     </div>
 
+    <!-- SPLITS TAB -->
+    <div id="tab-splits" class="tab-content">
+        <div class="card">
+            <div class="card-title">Balance summary</div>
+            <div id="balance-summary" class="balance-summary">
+                <div class="empty"><div class="icon">🤝</div><p>No splits yet</p></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Add a split</div>
+            <input class="note-input" id="split-desc" type="text" placeholder="Description (e.g. Pizza night)">
+            <input class="amount-input" id="split-amount" type="number" placeholder="₹ Total amount" min="1" style="margin-bottom:12px;">
+            <input class="note-input" id="split-due" type="date" placeholder="Due date">
+
+            <div id="split-people-section" style="margin-bottom:12px;">
+                <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Participants</div>
+                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                    <input class="note-input" id="participant-input" type="text" placeholder="Add person name" style="margin-bottom:0;flex:1;">
+                    <button onclick="addParticipant()" style="padding:10px 14px;background:var(--primary-light);color:var(--primary);border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Add</button>
+                </div>
+                <div id="participants-list"></div>
+            </div>
+
+            <div id="single-person-section" style="display:none;margin-bottom:12px;">
+                <label id="person-label" style="display:block;font-size:13px;font-weight:500;margin-bottom:5px;">Person</label>
+                <input class="note-input" id="single-person-input" type="text" placeholder="Person's name" style="margin-bottom:0;">
+            </div>
+
+            <div id="split-preview" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;"></div>
+
+            <button onclick="addSplit()" style="width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;">Add Split</button>
+        </div>
+        <div class="card">
+            <div class="card-title">All splits</div>
+            <div id="splits-list">
+                <div class="empty"><div class="icon">📋</div><p>No splits recorded</p></div>
+            </div>
+        </div>
+    </div>
+
     <!-- SETTINGS TAB -->
     <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <div class="card-title">Profile</div>
+            <div class="setting-row">
+                <span class="setting-label">Name</span>
+                <input class="setting-input" id="profile-name" type="text" placeholder="Your name">
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Email</span>
+                <input class="setting-input" id="profile-email" type="email" placeholder="you@email.com" style="width:160px;">
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Change password</div>
+            <div class="setting-row">
+                <span class="setting-label">Current</span>
+                <input class="setting-input" id="cur-pass" type="password" placeholder="••••••">
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">New</span>
+                <input class="setting-input" id="new-pass" type="password" placeholder="••••••">
+            </div>
+            <button onclick="changePassword()" style="width:100%;padding:11px;background:var(--primary-light);color:var(--primary);border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-top:8px;">Update Password</button>
+        </div>
         <div class="card">
             <div class="card-title">Monthly budget</div>
             <div id="budget-settings"><!-- rendered by JS --></div>
         </div>
         <div class="card" style="margin-top:0">
             <div class="card-title" style="color:var(--danger)">Danger zone</div>
-            <button onclick="clearMonth()" style="width:100%;padding:12px;background:#FEF2F2;color:var(--danger);border:1px solid #FECACA;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">
+            <button onclick="clearMonth()" style="width:100%;padding:12px;background:#FEF2F2;color:var(--danger);border:1px solid #FECACA;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-bottom:8px;">
                 🗑️ Clear this month's data
+            </button>
+            <button onclick="logout()" style="width:100%;padding:12px;background:#F8FAFC;color:var(--text-muted);border:1px solid #E2E8F0;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">
+                🚪 Logout
             </button>
         </div>
     </div>
 
 </div>
+</div>
 
 <div id="toast"></div>
+<div id="install-banner"></div>
 <script src="app.js"></script>
 </body>
 </html>
