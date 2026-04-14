@@ -1,6 +1,5 @@
-// ── STORAGE HELPERS ────────────────────────────────────────────────
-const save = (key, data) => localStorage.setItem(key, JSON.stringify(data));
-const load = (key, fallback) => JSON.parse(localStorage.getItem(key)) ?? fallback;
+// ── CONFIG ──────────────────────────────────────────────────────────
+const API = 'https://expense-tracker-y3f6.onrender.com/api';
 
 // ── CATEGORIES ─────────────────────────────────────────────────────
 const CATEGORIES = [
